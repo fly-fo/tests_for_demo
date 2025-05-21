@@ -1,104 +1,76 @@
-# Название workflow
 name: tests_for_demo
 
-# переменные окружения
 env:
   ALLURE_ENDPOINT: https://demo.testops.cloud/
   ALLURE_PROJECT_ID: 4535
   ALLURE_TOKEN: ${{ secrets.ALLURE_TOKEN }}
-  ALLURE_JOB_RUN_ID: ${{ github.event.inputs.ALLURE_JOB_RUN_ID }}
   ALLURE_RESULTS: "allure-results"
-  BROWSER: ${{ inputs.BROWSER || 'chrome' }}
-  OS: ${{ inputs.OS || 'macOS-latest' }}
+  BROWSER: ${{ github.event.inputs.BROWSER || 'chrome' }}
+  OS: ${{ github.event.inputs.OS || 'macOS-latest' }}
   BRANCH: ${{ github.ref_name }}
 
-# Триггеры для запуска workflow
 on:
-# по расписанию
-#  schedule:
-#    - cron: "0 0 * * *"
-
-# пуш и пулл реквест
-#  push:
-#    branches:
-#      - main
-#  pull_request:
-#    branches:
-#      - main
-     
-# вручную    
   workflow_dispatch:
     inputs:
       ALLURE_JOB_RUN_ID:
-        description: "Inner parameter for Allure TestOps"
+        description: "Allure TestOps Job Run ID"
         required: false
-      ALLURE_USERNAME:
-        description: "Inner parameter for Allure TestOps"
+      BROWSER:
+        description: "Browser to run tests in"
         required: false
+        default: "chrome"
+      OS:
+        description: "OS to run tests on"
+        required: false
+        default: "macOS-latest"
 
 jobs:
   autotests: 
     name: Run tests
-    runs-on: macOS-latest
+    runs-on: ${{ github.event.inputs.OS || 'macOS-latest' }}
     
     steps:
       - uses: actions/checkout@v3
 
-      # подготовка окружения
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.12'
 
-      # установка зависисомтей
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # отладочные шаги, для проверки работы с переменными
       - name: Debug environment variables
         run: |
-          echo "ALLURE_ENDPOINT: $allure_endpoint"
-          echo "ALLURE_PROJECT_ID: $allure_project_id"
-        env:
-          allure_endpoint: https://demo.testops.cloud/
-          allure_project_id: 4535
+          echo "ALLURE_ENDPOINT: $ALLURE_ENDPOINT"
+          echo "ALLURE_PROJECT_ID: $ALLURE_PROJECT_ID"
+          echo "BRANCH: $BRANCH"
 
-      # устанока allurectl (связующее звено с ТестОпс)
       - name: Install allurectl
         uses: allure-framework/setup-allurectl@v1
         with:
-          allure-endpoint: https://demo.testops.cloud/
+          allure-endpoint: ${{ env.ALLURE_ENDPOINT }}
           allure-token: ${{ env.ALLURE_TOKEN }}
-          allure-project-id: 4535
+          allure-project-id: ${{ env.ALLURE_PROJECT_ID }}
 
-      # создаем директорию для результатов
       - name: Ensure allure-results directory exists
         run: |
           mkdir -p ${ALLURE_RESULTS}
 
-      # запускаем тесты и сразу следим за выполнением
-      # отправляем данные в ТестОпс по мере поступления
       - name: Run tests
-      #  run: allurectl watch -- pytest --alluredir=${ALLURE_RESULTS} --capture=no
-      #  env:
-      #    BRANCH: ${{ github.ref_name }}
-      #    ENDPOINT: ${{ github.event.inputs.ENDPOINT}}
-      #    ENDPOINT: ${{ env.ALLURE_ENDPOINT }}
-      #    BROWSER: ${{ github.event.inputs.BROWSER}}
-      #    OS: ${{ github.event.inputs.OS}}
-      #    ALLURE_JOB_RUN_ID: ${{ github.event.inputs.ALLURE_JOB_RUN_ID }}
+        run: |
+          pytest --alluredir=${ALLURE_RESULTS} --capture=no
+        env:
+          BROWSER: ${{ github.event.inputs.BROWSER || 'chrome' }}
 
-      # проверяем если файлы с отчетами
-      - name: Check allure-results directory
+      - name: Upload results to Allure TestOps
         if: always()
         run: |
-          ls -la ${ALLURE_RESULTS}
-
-      # загружаем файлы в ТестОпс
-      #- name: Publish results to Allure TestOps
-      #  if: always()
-      #  run:  |
-      #    allurectl upload ${ALLURE_RESULTS}
-      #    #--endpoint ${ALLURE_ENDPOINT} --token ${ALLURE_TOKEN} --project ${ALLURE_PROJECT_ID}
+          allurectl upload ${ALLURE_RESULTS} \
+            --job-run-id ${{ github.event.inputs.ALLURE_JOB_RUN_ID }} \
+            --launch-name "GitHub Run ${{ github.run_id }}" \
+            --launch-tag branch:$BRANCH \
+            --launch-tag os:${{ github.event.inputs.OS || 'macOS-latest' }} \
+            --launch-tag browser:${{ github.event.inputs.BROWSER || 'chrome' }}
