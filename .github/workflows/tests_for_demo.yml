@@ -9,7 +9,7 @@ env:
   ALLURE_JOB_RUN_ID: ${{ github.event.inputs.ALLURE_JOB_RUN_ID }}
   ALLURE_RESULTS: "allure-results"
   BROWSER: ${{ inputs.BROWSER || 'OperaGX' }}
-  OS: ${{ inputs.OS || 'Win_11' }}
+  OS: ${{ inputs.OS || 'macOS-latest' }}
   BRANCH: ${{ github.ref_name }}
 
 # Триггеры для запуска workflow
