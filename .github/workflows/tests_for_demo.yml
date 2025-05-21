@@ -10,7 +10,7 @@ env:
   ALLURE_RESULTS: "allure-results"
   BROWSER: ${{ inputs.BROWSER || 'chrome' }}
   OS: ${{ inputs.OS || 'macOS-latest' }}
-  #BRANCH: ${{ github.ref_name }}
+  BRANCH: ${{ github.ref_name }}
 
 # Триггеры для запуска workflow
 on:
@@ -82,7 +82,7 @@ jobs:
       # отправляем данные в ТестОпс по мере поступления
       - name: Run tests
         run: allurectl watch -- pytest --alluredir=${ALLURE_RESULTS} --capture=no
-        #env:
+        env:
         #  BRANCH: ${{ github.ref_name }}
         #  ENDPOINT: ${{ github.event.inputs.ENDPOINT}}
         #  ENDPOINT: ${{ env.ALLURE_ENDPOINT }}
