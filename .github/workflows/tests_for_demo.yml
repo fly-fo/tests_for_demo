@@ -29,14 +29,6 @@ on:
 # вручную    
   workflow_dispatch:
     inputs:
-      BROWSER:
-        description: Browser
-        required: false
-        default: "chrome"
-      OS:
-        description: OS
-        required: false
-        default: "macOS-latest"
       ALLURE_JOB_RUN_ID:
         description: "ALLURE_JOB_RUN_ID - service parameter (leave blank)"
         required: false
